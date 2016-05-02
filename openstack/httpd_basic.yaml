@@ -1,0 +1,35 @@
+- name: Deploy Basic Webserver on OpenStack
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: Deploy an instance
+    nova_compute:
+      state: present
+      login_username: demo
+      login_password: redhat01
+      login_tenant_name: admin
+      auth_url: http://192.168.122.80:5000/v2.0/
+      name: webserver
+      image_name: CentOS_7
+      key_name: admin
+      wait_for: 200
+      flavor_id: 2
+      auto_floating_ip: yes
+      nics:
+        - net-id: 431aa0f5-2790-403b-84e0-7cb88b836782
+      meta:
+        hostname: webserver.localdomain
+    register: nova
+
+  - name: Add CentOS Instance to Inventory
+    add_host: name=webserver groups=webservers
+              ansible_ssh_host={{ nova.public_ip[0] }} 
+
+- hosts: webservers
+  remote_user: centos
+  sudo: yes
+  tasks:
+    - name: ensure apache is at the latest version
+      yum: name=httpd state=latest
+    - name: make sure apache is running
+      service: name=httpd state=running
